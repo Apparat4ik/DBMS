@@ -29,139 +29,6 @@ public:
 
     }
 
-    MyArray<MyArray<string>> select(const SelectStmt& sel){
-
-        MyArray<MyArray<string>> result;
-
-        int n = sel.tables.msize();
-
-        MyArray<MyArray<string>> currentRows;
-       
-        MyArray<MyArray<string>> headers;
-
-        for (int i = 0; i < n; i++) {
-            ifstream tb(name + "/" + sel.tables[i] + "/1.csv", ios::in);
-            if (!tb.is_open()) throw runtime_error("Не получилось открыть таблицы");
-            string header;
-            getline(tb, header);
-            tb.close();
-            headers[i] = split_csv_line(header);
-        }
-
-
-        function<string(const Expr&, const UnMap<string,string>&)> eval_operand =
-        [&](const Expr& e, const UnMap<string,string>& rowmap) -> string {
-            if (e.kind == Expr::VALUE)
-                return e.value;
-
-            if (e.kind == Expr::COLUMN_REF) {
-                string key = e.colref.table + "." + e.colref.column;
-                return rowmap[key];
-            }
-
-            throw runtime_error("Bad operand");
-        };
-
-
-        function<bool(const Expr&, const UnMap<string,string>&)> eval_expr =
-        [&](const Expr& e, const UnMap<string,string>& rowmap) -> bool {
-
-            switch (e.kind) {
-
-                case Expr::AND:
-                    return eval_expr(*e.left, rowmap) &&
-                        eval_expr(*e.right, rowmap);
-
-                case Expr::OR:
-                    return eval_expr(*e.left, rowmap) ||
-                        eval_expr(*e.right, rowmap);
-
-                case Expr::PARENS:
-                    return eval_expr(*e.left, rowmap);
-
-                case Expr::EQUAL: {
-                    string L = eval_operand(*e.left, rowmap);
-                    string R = eval_operand(*e.right, rowmap);
-                    return L == R;
-                }
-
-                default:
-                    throw runtime_error("Unexpected expression");
-            }
-        };
-
-        function<void(int)> dfs = [&](int depth)
-        {
-            if (depth == n) {
-                UnMap<string,string> rowmap;
-
-                for (int ti = 0; ti < n; ti++) {
-                    string tname = sel.tables[ti];
-
-                    for (int ci = 0; ci < headers[ti].msize(); ci++) {
-                        string col = headers[ti][ci];
-                        rowmap.insert(tname + "." + col, currentRows[ti][ci]);
-                    }
-                }
-
-                if (sel.where) {
-                    if (!eval_expr(*sel.where, rowmap)) return;
-                }
-
-
-                MyArray<string> row;
-                for (int c = 0; c < sel.columns.msize(); c++) {
-
-                    string tname = sel.columns[c].table;
-                    string cname = sel.columns[c].column;
-
-                    int ti = -1;
-                    for (int i = 0; i < n; i++)
-                        if (sel.tables[i] == tname) ti = i;
-
-                    if (ti == -1)
-                        throw runtime_error("Unknown table: " + tname);
-
-                    int ci = -1;
-                    for (int j = 0; j < headers[ti].msize(); j++)
-                        if (headers[ti][j] == cname) ci = j;
-
-                    if (ci == -1)
-                        throw runtime_error("Unknown column: " + cname);
-
-                    row.MPUSH_back(currentRows[ti][ci]);
-                }
-
-                result.MPUSH_back(row);
-                return;
-            }
-
-            string tname = sel.tables[depth];    
-            int fileIndex = 1;
-
-            while (fs::exists(name + "/" + tname + "/" + to_string(fileIndex) + ".csv")) {
-                ifstream tb(name + "/" + tname + "/" + to_string(fileIndex) + ".csv");
-                string line;
-
-                getline(tb, line); // пропускаем header
-
-                while (getline(tb, line)) {
-                    if (line.empty()) continue;
-
-                    currentRows.MPUSH_back(split_csv_line(line));
-                    dfs(depth + 1);  // преходим на след таблицу
-                }
-
-                tb.close();
-                fileIndex++;
-            }
-        };
-
-        dfs(0);
-        return result;
-    }
-
-
 private:
     nlohmann::json j; // храним JSON внутри
 
@@ -196,12 +63,12 @@ private:
             fs::path cnt = tableDir / "1_count";
             if (!fs::exists(csv)) {
                 ofstream f(csv.string(), ios::app);
+                f << tableName + "_pk" << ';';
                 for (string it : columns){
                     if (it != columns.back()){
                         f << it << ';';
                     } else {
-                        f << it << ';';
-                        f << tableName + "_pk" << '\n';
+                        f << it << '\n';
                     }
                 }
                 

@@ -7,6 +7,8 @@ struct ArNode {
     T key = T();
 };
 
+
+
 template<typename T>
 class MyArray {
 private:
@@ -112,7 +114,15 @@ public:
     void MPUSH_back(T key) {                 // O(1)
         if (size >= capacity){resize();}
         data[size].key = key;
-        if (data[size].key != T()){size++;}
+        size++;
+    }
+
+    void MPOP_back(){
+        if (empty()){
+            return;
+        }
+        data[size].key = T();
+        size--;
     }
 
 
@@ -180,3 +190,12 @@ public:
         return capacity;
     }
 };
+
+template<typename T>
+ostream& operator<<(ostream& os, MyArray<T> mr){
+    for (int i = 0; i < mr.msize(); i++){
+        os << mr[i] << ' '; 
+    }
+    os << endl;
+    return os;
+}

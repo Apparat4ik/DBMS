@@ -8,7 +8,7 @@ int main() {
     try {
         Schema schema("schema.json");
         Executor exec(schema);
-
+      
         string line, buffer;
         while (cout << "sql> ", getline(cin, line)) {
             buffer += line + " ";

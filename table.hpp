@@ -17,10 +17,6 @@ struct Row {
 
     Row() = default;
     Row(const MyArray<string>& row) : values(row) {}
-
-    void get_line_file(const string& val){
-        values = split_csv_line(val);
-    }
 };
 
 class Table {
@@ -55,7 +51,6 @@ private:
             fsq.close();
         }
         uint64_t nxt = cur + 1;
-        fsq.close();
         ofstream ofs(dir + "/" + name + "_pk_sequence");
         ofs << nxt << "\n";
         return nxt;
@@ -124,10 +119,8 @@ public:
                 cnt = 0;
                 nextTable = true;
             }
-        
-            string pathToTable = dir + "/" + fileNumber + ".csv";
 
-            ofstream tblfile(pathToTable, ios::app);
+            ofstream tblfile(dir + "/" + fileNumber + ".csv", ios::app);
             if (!tblfile){
                 throw runtime_error("Не получилось открыть файл");
             }
@@ -135,6 +128,8 @@ public:
             if (nextTable){
                 tblfile <<  join_csv_row(colnames);
             }
+
+            tblfile << next_pk() << ';';
 
             for (int i = 0; i < rw.values.msize(); i++){
                 tblfile << rw.values[i];
@@ -144,7 +139,6 @@ public:
             }
             cnt++;
 
-            tblfile << ';' << next_pk() << ';';
             
             ofstream rowCount_in((dir + "/" + fileNumber + "_count"), ios::out);
             rowCount_in << cnt;
@@ -170,16 +164,21 @@ public:
                 countIn >> cnt;
                 countIn.close();
 
+                int column = get_index_for_column(columnName);
+
                 fs::path part = dir + "/" + to_string(fileIndex) + ".csv";
                 fs::path tmp = dir + "/" + to_string(fileIndex) + ".csv.tmp";
                 ifstream curentFile(part);
                 ofstream newFile(tmp, ios::app);
+                
+                string header;
+                getline(curentFile, header);
 
                 string line;
-                int column = get_index_for_column(columnName);
+                newFile << header << '\n';
                 while (getline(curentFile, line)){
                     MyArray<string> tmparray = split_csv_line(line);
-                    if (tmparray[column - 1] == value){
+                    if (tmparray[column] == value){
                         cnt--;
                         continue;
                     }
@@ -200,18 +199,3 @@ public:
         }
     }
 };
-/*
-int main(){
-    Schema schem("schema.json");
-    MyArray<string> testrow = {"1", "2", "3", "4"};
-    MyArray<string> testrow2 = {"5", "6", "7", "8"};
-    Table tb{schem, "таблица1"};
-    Row rw{testrow};
-    Row rw2{testrow2};
-    tb.insert_row(rw);
-    tb.insert_row(rw2);
-    tb.insert_row(rw2);
-    tb.delete_where(1, "5");
-    return 0;
-}
-    */

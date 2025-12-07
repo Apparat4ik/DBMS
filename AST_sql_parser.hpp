@@ -72,35 +72,47 @@ struct Token {
 
 class Lexer {
 public:
-    explicit Lexer(const string &src) : s(src), pos(0) { tokenize(); }
+    explicit Lexer(const string &src) : str(src), pos(0) { tokenize(); }
 
     const MyArray<Token>& tokens() const { return toks; }
 
 private:
-    string s;
+    string str;
     size_t pos;
     MyArray<Token> toks;
 
     void tokenize() {
-        while (pos < s.size()) {
-            char c = s[pos];
+        while (pos < str.size()) {
+            char c = str[pos];
 
             if (isspace((unsigned char)c)) { pos++; continue; }
 
-            
-            if (c == ',' || c == '(' || c == ')' || c == '=' || c == ';' || c == '.') {
+            if (c == ',' || c == '(' || c == ')' || c == ';' || c == '=') {
                 toks.MPUSH_back({string(1, c)});
-                pos++;
+                ++pos;
                 continue;
             }
 
+            // identifier / keyword — разрешаем точку внутри токена:
+            if (isalpha((unsigned char)c)) {
+                std::string cur;
+                while (pos < str.size()) {
+                    char d = str[pos];
+                    if (isalnum((unsigned char)d) || d == '_' || d == '.') {
+                        cur.push_back(d);
+                        pos++;
+                    } else break;
+                }
+                toks.MPUSH_back({cur});
+                continue;
+            }
             
             if (c == '\'') {
                 string lit;
                 lit.push_back(c);
                 pos++;
-                while (pos < s.size()) {
-                    char d = s[pos++];
+                while (pos < str.size()) {
+                    char d = str[pos++];
                     lit.push_back(d);
                     if (d == '\''){break;}
                 }
@@ -111,8 +123,8 @@ private:
             // identifier / keyword
             if (isalnum((unsigned char)c) || c == '_') {
                 string id;
-                while (pos < s.size() && (isalnum((unsigned char)s[pos]) || s[pos] == '_' || s[pos]=='.')) {
-                    id.push_back(s[pos++]);
+                while (pos < str.size() && (isalnum((unsigned char)str[pos]) || str[pos] == '_' || str[pos]=='.')) {
+                    id.push_back(str[pos++]);
                 }
                 toks.MPUSH_back({id});
                 continue;
@@ -120,9 +132,9 @@ private:
 
             // отбрасываем неподходящие символы
             string other;
-            while (pos < s.size() && !isspace((unsigned char)s[pos]) 
-                   && string(",().;=").find(s[pos]) == string::npos) {
-                other.push_back(s[pos++]);
+            while (pos < str.size() && !isspace((unsigned char)str[pos]) 
+                   && string(",().;=").find(str[pos]) == string::npos) {
+                other.push_back(str[pos++]);
             } 
                 
             if (!other.empty()) {
@@ -284,30 +296,29 @@ private:
     }
 
     shared_ptr<Expr> parse_equality() {
-        // operand = operand
         string a = next();
         expect("=");        
         string b = next();
 
-        auto eq = make_shared<Expr>(Expr::EQUAL);
+        shared_ptr<Expr> eq = make_shared<Expr>(Expr::EQUAL);
         eq -> left = make_operand(a);
         eq -> right = make_operand(b);
         return eq;
     }
 
     shared_ptr<Expr> make_operand(const string &t) {
-        // literal?
         if (t.size() >= 2 && t.front() == '\'' && t.back() == '\'') {
-            auto n = make_shared<Expr>(Expr::VALUE);
+            shared_ptr<Expr> n = make_shared<Expr>(Expr::VALUE);
             n -> value = t.substr(1, t.size()-2);
             return n;
         }
         size_t dot = t.find('.');
-        if (dot == string::npos)
-            throw runtime_error("Expected literal or table.column");
-        auto n = make_shared<Expr>(Expr::COLUMN_REF);
-        n->colref.table = t.substr(0, dot);
-        n->colref.column = t.substr(dot+1);
+        if (dot == string::npos){
+            throw runtime_error("Expected value or table.column");
+        }
+        shared_ptr<Expr> n = make_shared<Expr>(Expr::COLUMN_REF);
+        n -> colref.table = t.substr(0, dot);
+        n -> colref.column = t.substr(dot+1);
         return n;
     }
 
@@ -319,7 +330,7 @@ private:
         if (dot == string::npos)
             throw runtime_error("Expected table.column");
 
-        return { t.substr(0,dot), t.substr(dot+1) };
+        return { t.substr(0,dot), t.substr(dot + 1) };
     }
 
 

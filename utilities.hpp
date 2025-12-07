@@ -10,21 +10,25 @@
 using namespace std;
 namespace fs = std::filesystem;
 
-inline string trim(const string &s) {
+string trim(const string &s) {
     size_t a = 0, b = s.size();
     while (a < b && isspace((unsigned char)s[a])) a++;
     while (b > a && isspace((unsigned char)s[b-1])) b--;
     return s.substr(a, b - a);
 }
 
-inline MyArray<string> split_csv_line(const string& line) {
+MyArray<string> split_csv_line(const string& line) {
     MyArray<string> out;
     string cur;
+     bool first_pk = true;
     for (size_t i = 0; i < line.size(); i++) {
         char c = line[i];
         if (c == ';') {
+            first_pk = false;
             out.MPUSH_back(cur);
             cur.clear();
+        } else if (first_pk) {
+            continue;
         } else {
             cur.push_back(c);
         }
@@ -36,7 +40,7 @@ inline MyArray<string> split_csv_line(const string& line) {
     return out;
 }
 
-inline string join_csv_row(const MyArray<string>& row) {
+string join_csv_row(const MyArray<string>& row) {
     stringstream oss;
     for (size_t i = 0; i < row.msize(); i++) {
         if (i) oss << ";";
