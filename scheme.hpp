@@ -16,8 +16,8 @@ public:
     MySet<string> tablenames;
 
     Schema(const string& filename) {
-        loadFromJSON(filename);
-        initializeDirectories();
+        load_from_JSON(filename);
+        initialize_directories();
     }
 
     bool is_table_exist(const string& name){
@@ -30,10 +30,10 @@ public:
     }
 
 private:
-    nlohmann::json j; // храним JSON внутри
+    nlohmann::json j;
 
-    // чтение JSON напрямую
-    void loadFromJSON(const std::string& filename) {
+    // чтение JSON
+    void load_from_JSON(const std::string& filename) {
         ifstream file(filename);
         if (!file.is_open())
             throw runtime_error("Cannot open schema.json");
@@ -45,7 +45,7 @@ private:
     }
 
     // создание директорий схемы и таблиц
-    void initializeDirectories() {
+    void initialize_directories() {
         namespace fs = filesystem;
 
         if (!fs::exists(name))

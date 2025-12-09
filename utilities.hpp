@@ -1,10 +1,8 @@
 #pragma once
 #include <string>
 #include <sstream>
-#include <algorithm>
 #include <filesystem>
 #include <fstream>
-#include <stdexcept>
 #include "Structures/MyArray.hpp"
 
 using namespace std;
@@ -50,7 +48,7 @@ string join_csv_row(const MyArray<string>& row) {
 }
 
 // функция для удаления кавычек при SQL запросах
-inline string unquote_sql_literal(const string &s) {
+string unquote_sql_literal(const string &s) {
     if (s.size() >= 2 && s.front() == '\'' && s.back() == '\'') {
         return s.substr(1, s.size()-2);
     }
@@ -58,7 +56,7 @@ inline string unquote_sql_literal(const string &s) {
 }
 
 
-inline string lower(string s) {
+string lower(string s) {
     for (char& c : s) {
         c = tolower(c);
     }

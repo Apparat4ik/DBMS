@@ -1,10 +1,6 @@
 #pragma once
 #include <string>
-#include <vector>
 #include <iostream>
-#include <memory>
-#include <stdexcept>
-#include <cctype>
 #include "utilities.hpp"
 #include "Structures/MyArray.hpp"
 
@@ -72,7 +68,7 @@ struct Token {
 
 class Lexer {
 public:
-    explicit Lexer(const string &src) : str(src), pos(0) { tokenize(); }
+    Lexer(const string &src) : str(src), pos(0) { tokenize(); }
 
     const MyArray<Token>& tokens() const { return toks; }
 
@@ -160,7 +156,7 @@ public:
         if (match_keyword("select"))  return parse_select_stmt();
         if (match_keyword("insert"))  return parse_insert_stmt();
         if (match_keyword("delete"))  return parse_delete_stmt();
-        throw runtime_error("Unknown statement");
+        throw runtime_error("Неизвестное выражение");
     }
 
 private:
